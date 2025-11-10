@@ -261,6 +261,7 @@ function loadMunicipiosAndColegios(deptKey) {
           const codDane = normalize(props['COD_DANE']) || 'No disponible';
           const copasst = normalize(props['COPASST']) || 'No disponible';
           const visitado = normalize(props['VISITADO_ECISL']) || 'No disponible';
+          const numdocentes = normalize(props['DOCENTES']) || 'No disponible';
 
           const popupContent = `
             <div style="font-family: Arial, sans-serif; min-width: 200px;">
@@ -273,6 +274,7 @@ function loadMunicipiosAndColegios(deptKey) {
                 <tr><td><strong>Jornada:</strong></td><td>${jornada}</td></tr>
                 <tr><td><strong>COPASST:</strong></td><td>${copasst}</td></tr>
                 <tr><td><strong>Visitado ECIS-L:</strong></td><td>${visitado}</td></tr>
+                <tr><td><strong>Número de Docentes:</strong></td><td>${numdocentes}</td></tr>
               </table>
             </div>
           `;
