@@ -266,7 +266,7 @@ function loadMunicipiosAndColegios(deptKey) {
             <div style="font-family: Arial, sans-serif; min-width: 200px;">
               <h3 style="margin: 0 0 8px; color: #1e40af; font-size: 16px;">${nombre}</h3>
               <table style="width: 100%; font-size: 13px; border-collapse: collapse;">
-                <tr><td><strong>COD DANE:</strong></td><td>${codDane}</td></tr>
+                <tr><td><strong>Código DANE:</strong></td><td>${codDane}</td></tr>
                 <tr><td><strong>Dirección:</strong></td><td>${direccion}</td></tr>
                 <tr><td><strong>Sede Principal:</strong></td><td>${sede}</td></tr>
                 <tr><td><strong>Zona:</strong></td><td>${zona}</td></tr>
