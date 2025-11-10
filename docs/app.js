@@ -1,14 +1,14 @@
 // === ARCHIVOS ===
 const DEPTOS_URL = 'Departamentos.geojson';
 const MUNI_URL_TEMPLATE = (code) => `Municipios_${code}.geojson`;
-const COLEGIOS_URL_TEMPLATE = (code) => `Colegios_${code}.geojson`;  // NUEVO
+const COLEGIOS_URL_TEMPLATE = (code) => `Colegios_${code}.geojson`;
 
 // === CAMPOS ===
 const DEPT_CODE_FIELD = 'DeCodigo';
 const DEPT_NAME_FIELD = 'DeNombre';
 const MUNI_DEPT_CODE_FIELD = 'DeCodigo';
 const MUNI_NAME_FIELD = 'MpNombre';
-const COLEGIO_NAME_FIELD = 'NOMBRE_INS';  // Ajusta si el campo es diferente (ej: 'NOMBRE', 'nombre_colegio')
+const COLEGIO_NAME_FIELD = 'NOMBRE_INS';
 
 // === CONFIG ===
 const MAX_ZOOM_ON_FOCUS = 10;
@@ -72,14 +72,18 @@ const muniStyle = () => ({
   fillOpacity: 0.3
 });
 
-// Ícono personalizado para colegios (opcional)
+// Ícono pequeño y circular para colegios
 const colegioIcon = L.divIcon({
-  html: `<svg width="20" height="20" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-           <path d="M12 2L2 12H5V20H10V14H14V20H19V12H22L12 2Z" fill="#1e40af"/>
-         </svg>`,
+  html: `<div style="
+    width: 10px;
+    height: 10px;
+    background-color: #1e40af;
+    border: 2px solid white;
+    border-radius: 50%;
+  "></div>`,
   className: 'colegio-marker',
-  iconSize: [20, 20],
-  iconAnchor: [10, 20]
+  iconSize: [14, 14],
+  iconAnchor: [7, 7]
 });
 
 // === MAPA ===
@@ -93,11 +97,12 @@ L.tileLayer('https://cartodb-basemaps-a.global.ssl.fastly.net/light_nolabels/{z}
 // === CAPAS ===
 let deptLayer;
 let muniLayer;
-let colegiosLayer;  // NUEVA CAPA
+let colegiosLayer;
 const allDeptBounds = L.latLngBounds();
 const deptIndexByKey = new Map();
 
 const selectDpto = document.getElementById('select-dpto');
+const toggleColegiosCheckbox = document.getElementById('toggle-visibles');
 let currentDeptKey = null;
 
 // === CARGA DE DEPARTAMENTOS ===
@@ -231,26 +236,65 @@ function loadMunicipiosAndColegios(deptKey) {
     .then(colegiosGeo => {
       if (!colegiosGeo || !colegiosGeo.features?.length) {
         console.warn('No hay colegios en este departamento o archivo vacío.');
+        if (colegiosLayer) { map.removeLayer(colegiosLayer); colegiosLayer = null; }
         return;
       }
 
       if (colegiosLayer) map.removeLayer(colegiosLayer);
+
       colegiosLayer = L.geoJSON(colegiosGeo, {
         pointToLayer: (feature, latlng) => {
           return L.marker(latlng, { icon: colegioIcon });
         },
         onEachFeature: (feature, layer) => {
+          const props = feature.properties || {};
           const nombre = getColegioName(feature);
-          layer.bindTooltip(nombre, { sticky: true, direction: 'top' });
-        }
-      }).addTo(map);
 
-      console.log(`Colegios cargados: ${colegiosGeo.features.length}`);
+          // Tooltip al pasar el mouse
+          layer.bindTooltip(nombre, { sticky: true, direction: 'top' });
+
+          // === POPUP AL HACER CLIC ===
+          const direccion = normalize(props['DIRECCION']) || 'No disponible';
+          const sede = normalize(props['SEDE_PRINC']) || 'No disponible';
+          const zona = normalize(props['ZONA']) || 'No disponible';
+          const jornada = normalize(props['JORNADA']) || 'No disponible';
+          const codDane = normalize(props['COD_DANE']) || 'No disponible';
+          const copasst = normalize(props['COPASST']) || 'No disponible';
+          const visitado = normalize(props['VISITADO_ECISL']) || 'No disponible';
+
+          const popupContent = `
+            <div style="font-family: Arial, sans-serif; min-width: 200px;">
+              <h3 style="margin: 0 0 8px; color: #1e40af; font-size: 16px;">${nombre}</h3>
+              <table style="width: 100%; font-size: 13px; border-collapse: collapse;">
+                <tr><td><strong>COD DANE:</strong></td><td>${codDane}</td></tr>
+                <tr><td><strong>Dirección:</strong></td><td>${direccion}</td></tr>
+                <tr><td><strong>Sede Principal:</strong></td><td>${sede}</td></tr>
+                <tr><td><strong>Zona:</strong></td><td>${zona}</td></tr>
+                <tr><td><strong>Jornada:</strong></td><td>${jornada}</td></tr>
+                <tr><td><strong>COPASST:</strong></td><td>${copasst}</td></tr>
+                <tr><td><strong>Visitado ECIS-L:</strong></td><td>${visitado}</td></tr>
+              </table>
+            </div>
+          `;
+
+          layer.bindPopup(popupContent, {
+            maxWidth: 300,
+            className: 'colegio-popup'
+          });
+        }
+      });
+
+      // Solo mostrar si el checkbox está marcado
+      if (toggleColegiosCheckbox && toggleColegiosCheckbox.checked) {
+        colegiosLayer.addTo(map);
+        console.log(`Colegios cargados y visibles: ${colegiosGeo.features.length}`);
+      } else {
+        console.log(`Colegios cargados pero ocultos: ${colegiosGeo.features.length}`);
+      }
     })
     .catch(err => {
       console.warn('No se cargaron colegios:', err.message);
-      if (colegiosLayer) map.removeLayer(colegiosLayer);
-      colegiosLayer = null;
+      if (colegiosLayer) { map.removeLayer(colegiosLayer); colegiosLayer = null; }
     });
 }
 
@@ -280,6 +324,21 @@ function handleSelectChange(deptKey) {
   loadMunicipiosAndColegios(deptKey);
 
   document.getElementById('error-message').textContent = '';
+}
+
+// === CONTROL DE VISIBILIDAD DE COLEGIOS ===
+if (toggleColegiosCheckbox) {
+  toggleColegiosCheckbox.addEventListener('change', function () {
+    if (!colegiosLayer) return;
+
+    if (this.checked) {
+      map.addLayer(colegiosLayer);
+      console.log('Colegios: visibles');
+    } else {
+      map.removeLayer(colegiosLayer);
+      console.log('Colegios: ocultos');
+    }
+  });
 }
 
 // === EVENTOS ===

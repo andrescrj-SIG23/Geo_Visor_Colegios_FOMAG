@@ -96,10 +96,18 @@ html, body {
   font-size: 12px;
 }
 .colegio-marker {
-  background: red;  /* Icono simple */
-  border-radius: 50%;
-  width: 10px;
-  height: 10px;
+    background: transparent !important;
+    border: none !important;
+}
+.colegio-popup .leaflet-popup-content-wrapper {
+    border-radius: 8px;
+    box-shadow: 0 2px 10px rgba(0,0,0,0.2);
+  }
+  .colegio-popup .leaflet-popup-content {
+    margin: 12px;
+  }
+  .colegio-popup .leaflet-popup-close-button {
+    color: #666;
 }
 
 /* Responsive */
