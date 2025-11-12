@@ -45,7 +45,7 @@ const getColegioName = (feature) => {
 
 // === ESTILOS ===
 const deptDefaultStyle = () => ({
-  color: '#007d6e',
+  color: '#07bba6ff',
   weight: 1,
   fillColor: '#4dd0b3',
   fillOpacity: 0.25
@@ -66,7 +66,7 @@ const deptHighlightStyle = () => ({
 });
 
 const muniStyle = () => ({
-  color: '#4b9d2a',
+  color: '#b2be45ff',
   weight: 1,
   fillColor: '#86f0a6',
   fillOpacity: 0.3
@@ -89,9 +89,11 @@ const colegioIcon = L.divIcon({
 // === MAPA ===
 const map = L.map('map', { zoomControl: true }).setView([4.6, -74.1], 5);
 
-L.tileLayer('https://cartodb-basemaps-a.global.ssl.fastly.net/light_nolabels/{z}/{x}/{y}{r}.png', {
+// 4. Positron (claro, minimalista)
+L.tileLayer('https://cartodb-basemaps-{s}.global.ssl.fastly.net/light_all/{z}/{x}/{y}{r}.png', {
   attribution: '&copy; OSM &copy; CARTO',
-  maxZoom: 18
+  subdomains: 'abcd',
+  maxZoom: 20
 }).addTo(map);
 
 // === CAPAS ===

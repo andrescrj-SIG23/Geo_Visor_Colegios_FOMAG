@@ -1,0 +1,243 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Visor Colegios Oficiales Activos</title>
+   
+  <link rel="stylesheet" href="estilos.css"/>
+
+  <!-- Librerías -->
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script> 
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+
+  <style>
+    body { font-family: Arial, sans-serif; margin: 0; background: #f4f6f9; }
+    .top-bar { 
+      display: flex; justify-content: space-between; align-items: center; 
+      padding: 15px 20px; background: #003366; color: white; 
+    }
+    .top-bar .title { font-size: 1.8rem; font-weight: bold; text-align: center; flex: 1; }
+    .top-bar .logo { height: 60px; }
+
+    .filtros { 
+      text-align: center; margin: 30px auto; max-width: 1200px; padding: 0 18px; 
+    }
+    .filtros select { 
+      margin: 0 10px; padding: 8px 12px; font-size: 1rem; 
+      border-radius: 6px; border: 1px solid #ccc; min-width: 180px;
+    }
+
+    .contenedor-graficas { 
+      max-width: 1200px; margin: 0 auto 56px; display: grid; 
+      grid-template-columns: 1fr 1fr; gap: 36px; padding: 0 18px; 
+    }
+    @media (max-width: 768px) {
+      .contenedor-graficas { grid-template-columns: 1fr; }
+    }
+
+    .card { 
+      background: #fff; border-radius: 14px; 
+      box-shadow: 0 8px 28px rgba(0,0,0,.08); padding: 20px; 
+      border: 1px solid rgba(0,0,0,.06); text-align: center;
+    }
+    .card h3 { margin: 0 0 15px; font-size: 1.3rem; color: #333; }
+    .card canvas { width: 100% !important; height: 320px !important; }
+  </style>
+</head>
+
+<body>
+
+  <!-- BARRA SUPERIOR -->
+  <div class="top-bar">
+    <div class="left-logo">
+      <img src="LOGO.jpg" alt="Logo" class="logo">
+    </div>
+    <div class="title">TABLERO DE SEGUIMIENTO</div>
+    <div class="right-logo">
+      <img src="LOGO.jpg" alt="Logo" class="logo">
+    </div>
+  </div>
+
+  <!-- FILTROS -->
+  <div class="filtros">
+    <label><strong>Departamento:</strong></label>
+    <select id="departamentoSelect">
+      <option value="">Todos</option>
+    </select>
+
+    <label><strong>Municipio:</strong></label>
+    <select id="municipioSelect">
+      <option value="">Todos</option>
+    </select>
+  </div>
+
+  <!-- GRÁFICAS TIPO TORTA -->
+  <section class="contenedor-graficas">
+    <div class="card">
+      <h3>% Colegios con COPASST</h3>
+      <canvas id="graficaCOPASST"></canvas>
+    </div>
+    <div class="card">
+      <h3>% Colegios Visitados (ECISL)</h3>
+      <canvas id="graficaVISITADOS"></canvas>
+    </div>
+  </section>
+
+  <!-- SCRIPT AL FINAL -->
+  <script>
+    // Canvases
+    const ctxCOPASST = document.getElementById("graficaCOPASST").getContext("2d");
+    const ctxVISITADOS = document.getElementById("graficaVISITADOS").getContext("2d");
+    let chartCOPASST, chartVISITADOS;
+    let datosColegios = [];
+
+    // Cargar Excel
+    async function cargarExcel() {
+      try {
+        const response = await fetch('ColegiosPrueba.xlsx');
+        if (!response.ok) throw new Error('Archivo no encontrado');
+        const arrayBuffer = await response.arrayBuffer();
+        const workbook = XLSX.read(arrayBuffer, { type: 'array' });
+        const sheet = workbook.Sheets[workbook.SheetNames[0]];
+        datosColegios = XLSX.utils.sheet_to_json(sheet);
+
+        // Llenar departamentos
+        const departamentos = [...new Set(datosColegios.map(r => r.DEPARTAMEN).filter(Boolean))].sort();
+        const deptSelect = document.getElementById('departamentoSelect');
+        departamentos.forEach(d => deptSelect.add(new Option(d, d)));
+
+        // Eventos
+        document.getElementById('departamentoSelect').addEventListener('change', actualizarFiltros);
+        document.getElementById('municipioSelect').addEventListener('change', actualizarGraficos);
+
+        // Iniciar
+        actualizarFiltros();
+      } catch (err) {
+        console.error(err);
+        alert('Error: No se pudo cargar ColegiosPrueba.xlsx');
+      }
+    }
+
+    // Actualizar municipios según departamento
+    function actualizarFiltros() {
+      const dept = document.getElementById('departamentoSelect').value;
+      const munSelect = document.getElementById('municipioSelect');
+      munSelect.innerHTML = '<option value="">Todos</option>';
+
+      if (dept) {
+        const municipios = [...new Set(
+          datosColegios
+            .filter(r => r.DEPARTAMEN === dept)
+            .map(r => r.MUNICIPIO)
+            .filter(Boolean)
+        )].sort();
+        municipios.forEach(m => munSelect.add(new Option(m, m)));
+      }
+      actualizarGraficos();
+    }
+
+    // Filtrar datos
+    function obtenerDatosFiltrados() {
+      let datos = [...datosColegios];
+      const dept = document.getElementById('departamentoSelect').value;
+      const mun = document.getElementById('municipioSelect').value;
+
+      if (dept) datos = datos.filter(r => r.DEPARTAMEN === dept);
+      if (mun) datos = datos.filter(r => r.MUNICIPIO === mun);
+
+      return datos;
+    }
+
+    // Calcular porcentajes para torta
+    function calcularPorcentajes(datos, campo) {
+      const total = datos.length;
+      if (total === 0) return { si: 0, no: 0 };
+
+      const si = datos.filter(r => String(r[campo]).trim().toUpperCase() === 'SI').length;
+      const no = total - si;
+
+      return {
+        si: (si / total) * 100,
+        no: (no / total) * 100
+      };
+    }
+
+    // Actualizar gráficas
+    function actualizarGraficos() {
+      const datos = obtenerDatosFiltrados();
+
+      // COPASST
+      const copasst = calcularPorcentajes(datos, 'COPASST');
+      const dataCOPASST = {
+        labels: ['Con COPASST', 'Sin COPASST'],
+        datasets: [{
+          data: [copasst.si, copasst.no],
+          backgroundColor: ['#27ae60', '#c0392b'],
+          borderColor: '#fff',
+          borderWidth: 2
+        }]
+      };
+
+      // VISITADOS_ECISL
+      const visitados = calcularPorcentajes(datos, 'VISITADO_ECISL');
+      const dataVISITADOS = {
+        labels: ['Visitados', 'No Visitados'],
+        datasets: [{
+          data: [visitados.si, visitados.no],
+          backgroundColor: ['#2980b9', '#95a5a6'],
+          borderColor: '#fff',
+          borderWidth: 2
+        }]
+      };
+
+      // Destruir gráficos anteriores
+      if (chartCOPASST) chartCOPASST.destroy();
+      if (chartVISITADOS) chartVISITADOS.destroy();
+
+      // Crear nuevos
+      chartCOPASST = new Chart(ctxCOPASST, {
+        type: 'doughnut',  // Tipo torta con hueco (más moderno)
+        data: dataCOPASST,
+        options: {
+          responsive: true,
+          plugins: {
+            legend: { position: 'bottom' },
+            tooltip: {
+              callbacks: {
+                label: context => {
+                  const value = context.parsed;
+                  return `${context.label}: ${value.toFixed(1)}%`;
+                }
+              }
+            }
+          }
+        }
+      });
+
+      chartVISITADOS = new Chart(ctxVISITADOS, {
+        type: 'doughnut',
+        data: dataVISITADOS,
+        options: {
+          responsive: true,
+          plugins: {
+            legend: { position: 'bottom' },
+            tooltip: {
+              callbacks: {
+                label: context => {
+                  const value = context.parsed;
+                  return `${context.label}: ${value.toFixed(1)}%`;
+                }
+              }
+            }
+          }
+        }
+      });
+    }
+
+    // Iniciar
+    cargarExcel();
+  </script>
+
+</body>
+</html>
