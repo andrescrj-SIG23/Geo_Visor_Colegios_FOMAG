@@ -69,7 +69,7 @@ const muniStyle = () => ({
   color: '#b2be45ff',
   weight: 1,
   fillColor: '#86f0a6',
-  fillOpacity: 0.3
+  fillOpacity: 0.2
 });
 
 // Ícono pequeño y circular para colegios

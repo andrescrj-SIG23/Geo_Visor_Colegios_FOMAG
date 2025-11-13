@@ -42,6 +42,7 @@ html, body {
 .topbar__group {
   display: flex;
   align-items: center;
+  flex-wrap: wrap;
   gap: 8px;
 }
 .topbar select {
@@ -53,7 +54,23 @@ html, body {
   background: #fff;
   color: #0b3d3a;
   font-size: 14px;
+} 
+.btn-stats {
+      margin-left: 20px;
+      padding: 6px 12px;
+      background-color: #3E65BF;
+      color: #ffffff;
+      border: none;
+      border-radius: 4px;
+      cursor: pointer;
+      font-size: 14px;
+      text-decoration: none;
+      display: inline-block;
 }
+.btn-stats:hover {
+      background-color: #12A6D6
+}
+
 .leaflet-container { background: #eef3f3; }
 
 .legend {
