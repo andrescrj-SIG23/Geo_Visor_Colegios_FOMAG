@@ -6,8 +6,9 @@
   <title>OPERACIÓN TERRITORIAL</title>
    
   <!-- Librerías -->
-  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script> 
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>  <!-- Gráficas -->
+  <script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-datalabels"></script> <!-- Etiquetas Gráficas -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script> <!-- Leer archivos xlsx -->
 
   <style>
     * { margin: 0; padding: 0}
@@ -38,7 +39,6 @@
     .contenedor-principal {
       max-width: 1200px; margin: 30px auto; padding: 0 18px;
     }
-
     .seccion {
       background: white; border-radius: 16px; padding: 24px;
       margin-bottom: 30px; box-shadow: 0 8px 25px rgba(0,0,0,0.08);
@@ -49,7 +49,17 @@
       padding-bottom: 10px; margin-bottom: 20px;
       font-size: 1.4rem; font-weight: 600;
     }
-
+    .seccion-doble {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 30px;
+    margin-top: 10px;
+    }
+    .columna {
+    display: flex;
+    flex-direction: column;
+    gap: 15px;
+    }
     /* Filtros */
     .filtro {
       margin: 15px 0;
@@ -64,7 +74,9 @@
 
     /* Gráficas internas */
     .grafica-interna {
-      margin-top: 20px; height: 300px;
+    height: 320px;
+    min-height: 300px;
+    background: #fff;
     }
 
     /* Responsive */
@@ -93,37 +105,31 @@
   <!-- CONTENEDOR PRINCIPAL -->
   <div class="contenedor-principal">
 
-    <!-- Sección 1: Departamento -->
+    <!-- Sección 1: VISITADOS ECIS-L -->
     <section class="seccion">
-      <h2>1. Departamento</h2>
-      <div class="filtro">
-        <label for="departamentoSelect">Departamento:</label>
-        <select id="departamentoSelect">
-          <option value="">Todos</option>
-        </select>
+      <h2>1. AVANCE E.E. VISITADOS POR ECIS-L</h2>
+      <div class="seccion-doble">
+        <div class="columna">
+          <div class="filtro">
+          <label for="departamentoSelect">Departamento:</label>
+          <select id="departamentoSelect">
+            <option value="">Todos</option>
+          </select>
       </div>
       <div class="grafica-interna">
-        <canvas id="chart-departamento"></canvas>
-      </div>
-    </section>
-
-    <!-- Sección 2: Secretaría -->
-    <section class="seccion">
-      <h2>2. Secretaría de Educación</h2>
-      <div class="filtro">
-        <label for="secretariaSelect">Secretaría:</label>
-        <select id="secretariaSelect" disabled>
-          <option value="">-- Todas --</option>
-        </select>
-      </div>
-      <div class="grafica-interna">
-        <canvas id="chart-secretaria"></canvas>
-      </div>
-    </section>
-
-    <!-- Sección 3: Municipio -->
-    <section class="seccion">
-      <h2>3. Municipio</h2>
+            <canvas id="chart-departamento"></canvas>
+          </div>
+        </div>
+        <div class="columna">
+          <div class="filtro">
+            <label for="secretariaSelect">Secretaría:</label>
+            <select id="secretariaSelect" disabled>
+              <option value="">-- Todas --</option>
+            </select>
+        </div>
+          <div class="grafica-interna">
+          <canvas id="chart-secretaria"></canvas>
+        </div>
       <div class="filtro">
         <label for="municipioSelect">Municipio:</label>
         <select id="municipioSelect" disabled>
@@ -134,6 +140,19 @@
         <canvas id="chart-municipio"></canvas>
       </div>
     </section>
+  
+    <!-- Sección 2: -->
+    <section class="seccion">
+      <h2>2. AVANCE APLICACIÓN DE AUTOREPORTE DE CONDICIONES DE SALUD</h2>
+      <div class="filtro">
+        <label for="secretariaSelect">Secretaría:</label>
+        <select id="secretariaSelect" disabled>
+          <option value="">-- Todas --</option>
+        </select>
+      </div>
+      <div class="grafica-interna">
+        <canvas id="chart-secretaria"></canvas>
+      </div>
 
   </div>
 

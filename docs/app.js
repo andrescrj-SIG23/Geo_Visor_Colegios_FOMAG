@@ -261,7 +261,6 @@ function loadMunicipiosAndColegios(deptKey) {
           const zona = normalize(props['ZONA']) || 'No disponible';
           const jornada = normalize(props['JORNADA']) || 'No disponible';
           const codDane = normalize(props['COD_DANE']) || 'No disponible';
-          const copasst = normalize(props['COPASST']) || 'No disponible';
           const visitado = normalize(props['VISITADO_ECISL']) || 'No disponible';
           const numdocentes = normalize(props['DOCENTES']) || 'No disponible';
 
@@ -274,7 +273,6 @@ function loadMunicipiosAndColegios(deptKey) {
                 <tr><td><strong>Sede Principal:</strong></td><td>${sede}</td></tr>
                 <tr><td><strong>Zona:</strong></td><td>${zona}</td></tr>
                 <tr><td><strong>Jornada:</strong></td><td>${jornada}</td></tr>
-                <tr><td><strong>COPASST:</strong></td><td>${copasst}</td></tr>
                 <tr><td><strong>Visitado ECIS-L:</strong></td><td>${visitado}</td></tr>
                 <tr><td><strong>Número de Docentes:</strong></td><td>${numdocentes}</td></tr>
               </table>

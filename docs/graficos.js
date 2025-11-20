@@ -36,7 +36,7 @@ async function cargarDatos() {
     document.getElementById('secretariaSelect').addEventListener('change', actualizarMunicipios);
     document.getElementById('municipioSelect').addEventListener('change', actualizarGraficos);
 
-    // Iniciar
+    // Iniciar gráficos al cargar
     actualizarGraficos();
 
   } catch (err) {
@@ -73,6 +73,7 @@ function actualizarSecretarias() {
     secSelect.disabled = false;
   }
 
+  // Al cambiar departamento, se resetean secretaría y municipio → se actualizan gráficos
   actualizarMunicipios();
 }
 
@@ -98,43 +99,70 @@ function actualizarMunicipios() {
     munSelect.disabled = false;
   }
 
+  // Cada vez que cambian los filtros → actualizamos todas las gráficas
   actualizarGraficos();
 }
 
-// === OBTENER DATOS FILTRADOS ===
-function obtenerDatosFiltrados() {
-  let datos = [...datosColegios];
+// ==================================================================
+// NUEVAS FUNCIONES: Datos independientes por nivel (¡SOLUCIÓN CLAVE!)
+// ==================================================================
+
+// Datos solo del departamento seleccionado (o todos si no hay selección)
+function obtenerDatosDepartamento() {
+  const dept = document.getElementById('departamentoSelect').value;
+  if (!dept) return datosColegios; // Si no hay departamento → todos los datos
+  return datosColegios.filter(r => r.DEPARTAMEN === dept);
+}
+
+// Datos solo de la secretaría seleccionada (independiente del municipio)
+function obtenerDatosSecretaria() {
+  const sec = document.getElementById('secretariaSelect').value;
+  if (!sec) return [];
+  return datosColegios.filter(r => r.SECRETARIA === sec);
+}
+
+// Datos del municipio seleccionado (respeta departamento y secretaría)
+function obtenerDatosMunicipio() {
   const dept = document.getElementById('departamentoSelect').value;
   const sec = document.getElementById('secretariaSelect').value;
   const mun = document.getElementById('municipioSelect').value;
 
+  if (!mun) return [];
+
+  let datos = [...datosColegios];
   if (dept) datos = datos.filter(r => r.DEPARTAMEN === dept);
   if (sec) datos = datos.filter(r => r.SECRETARIA === sec);
-  if (mun) datos = datos.filter(r => r.MUNICIPIO === mun);
-
-  return datos;
+  return datos.filter(r => r.MUNICIPIO === mun);
 }
 
 // === CALCULAR PORCENTAJE ===
 function calcularPorcentaje(datos, campo) {
   if (datos.length === 0) return 0;
   const si = datos.filter(r => String(r[campo]).trim().toUpperCase() === 'SI').length;
-  return (si / datos.length) * 100;
+  return Number(((si / datos.length) * 100).toFixed(2)); // Redondeo a 2 decimales
 }
 
-// === ACTUALIZAR GRÁFICAS ===
+// ==================================================================
+// ACTUALIZAR GRÁFICAS (AHORA CADA UNA USA SUS PROPIOS DATOS)
+// ==================================================================
 function actualizarGraficos() {
-  const datos = obtenerDatosFiltrados();
+  const deptSeleccionado = document.getElementById('departamentoSelect').value;
+  const secSeleccionada = document.getElementById('secretariaSelect').value;
+  const munSeleccionado = document.getElementById('municipioSelect').value;
 
-  // === GRÁFICA 1: DEPARTAMENTO (Torta general) ===
+ Chart.register(ChartDataLabels);
+
+ // ================== GRÁFICA 1: DEPARTAMENTO ==================
+  // Siempre se muestra (si hay datos), y NUNCA se afecta por secretaría o municipio
   if (ctxDepto) {
-    const visitados = calcularPorcentaje(datos, 'VISITADOS_ECISL');
+    const datosDepto = obtenerDatosDepartamento();
+    const visitados = calcularPorcentaje(datosDepto, 'VISITADOS_ECISL');
 
     const data = {
       labels: ['Visitados', 'No Visitados'],
       datasets: [{
         data: [visitados, 100 - visitados],
-        backgroundColor: ['#27ae60', '#c0392b'],
+        backgroundColor: ['#2ecc71', '#e67e22'],
         borderColor: '#fff',
         borderWidth: 3
       }]
@@ -149,66 +177,105 @@ function actualizarGraficos() {
         cutout: '70%',
         plugins: {
           legend: { position: 'bottom' },
-          title: { display: true, text: 'Resumen General', font: { size: 16 } }
+          title: {
+            display: true,
+            text: deptSeleccionado
+              ? `Departamento: ${deptSeleccionado}`
+              : 'Todos los departamentos',
+            font: { size: 16 }
+          },
+
+          // Labels Gráficos
+          datalabels: {
+            color: '#2c3e50',
+            font: {
+              weight: 'bold',
+              size: 14
+            },
+            formatter: function(value) {
+              return value + '%'; // lo que aparece en el gráfico
+            }
+          }
         }
       }
     });
   }
 
-  // === GRÁFICA 2: SECRETARÍA (Barras) ===
-  if (ctxSec && document.getElementById('secretariaSelect').value) {
-    const sec = document.getElementById('secretariaSelect').value;
-    const datosSec = datosColegios.filter(r => r.SECRETARIA === sec);
-    const visitados = calcularPorcentaje(datosSec, 'VISITADOS_ECISL');
+  // ================== GRÁFICA 2: SECRETARÍA ==================
+  // Solo se muestra si hay una secretaría seleccionada
+  if (ctxSec) {
+    // Si no hay secretaría seleccionada → destruir gráfica si existe
+    if (!secSeleccionada && chartSec) {
+      chartSec.destroy();
+      chartSec = null;
+    }
 
-    const data = {
-      labels: ['Visitados ECISL'],
-      datasets: [{
-        label: '% Cumplimiento',
-        data: [visitados],
-        backgroundColor: ['#27ae60'],
-        borderRadius: 6
-      }]
-    };
+    if (secSeleccionada) {
+      const datosSec = obtenerDatosSecretaria();
+      const visitados = calcularPorcentaje(datosSec, 'VISITADOS_ECISL');
 
-    if (chartSec) chartSec.destroy();
-    chartSec = new Chart(ctxSec, {
-      type: 'bar',
-      data: data,
-      options: {
-        responsive: true,
-        plugins: { title: { display: true, text: `Secretaría: ${sec}` } },
-        scales: { y: { beginAtZero: true, max: 100 } }
-      }
-    });
+      const data = {
+        labels: ['Visitados ECISL'],
+        datasets: [{
+          label: 'Porcentaje de Instituciones Educativas Visitadas por ECIS-L',
+          data: [visitados],
+          backgroundColor: '#2ecc71',
+          borderRadius: 6
+        }]
+      };
+
+      if (chartSec) chartSec.destroy();
+      chartSec = new Chart(ctxSec, {
+        type: 'bar',
+        data: data,
+        options: {
+          responsive: true,
+          plugins: {
+            title: { display: true, text: `Secretaría: ${secSeleccionada}` }
+          },
+          scales: {
+            y: { beginAtZero: true, max: 100, ticks: { stepSize: 10 } }
+          }
+        }
+      });
+    }
   }
 
-  // === GRÁFICA 3: MUNICIPIO (Torta) ===
-  if (ctxMuni && document.getElementById('municipioSelect').value) {
-    const mun = document.getElementById('municipioSelect').value;
-    const datosMun = datos.filter(r => r.MUNICIPIO === mun);
-    const copasst = calcularPorcentaje(datosMun, 'COPASST');
+  // ================== GRÁFICA 3: MUNICIPIO ==================
+  // Solo se muestra si hay municipio seleccionado
+  if (ctxMuni) {
+    if (!munSeleccionado && chartMuni) {
+      chartMuni.destroy();
+      chartMuni = null;
+    }
 
-    const data = {
-      labels: ['Con COPASST', 'Sin COPASST'],
-      datasets: [{
-        data: [copasst, 100 - copasst],
-        backgroundColor: ['#27ae60', '#c0392b'],
-        borderColor: '#fff',
-        borderWidth: 4
-      }]
-    };
+    if (munSeleccionado) {
+      const datosMun = obtenerDatosMunicipio();
+      const visitados = calcularPorcentaje(datosMun, 'VISITADOS_ECISL');
 
-    if (chartMuni) chartMuni.destroy();
-    chartMuni = new Chart(ctxMuni, {
-      type: 'doughnut',
-      data: data,
-      options: {
-        responsive: true,
-        cutout: '65%',
-        plugins: { title: { display: true, text: `Municipio: ${mun}` } }
-      }
-    });
+      const data = {
+        labels: ['Visitados', 'No Visitados'],
+        datasets: [{
+          data: [visitados, 100 -  visitados],
+          backgroundColor: ['#2ecc71', '#e67e22'],
+          borderColor: '#fff',
+          borderWidth: 4
+        }]
+      };
+
+      if (chartMuni) chartMuni.destroy();
+      chartMuni = new Chart(ctxMuni, {
+        type: 'doughnut',
+        data: data,
+        options: {
+          responsive: true,
+          cutout: '65%',
+          plugins: {
+            title: { display: true, text: `Municipio: ${munSeleccionado}` }
+          }
+        }
+      });
+    }
   }
 }
 
